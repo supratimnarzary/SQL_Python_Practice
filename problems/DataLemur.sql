@@ -432,3 +432,91 @@ select count(a.company_id) as duplicate_companies from
 (SELECT company_id, count(title) as cnt, description FROM job_listings
 group by company_id, title
 having cnt >1)a;
+
+-- Q12
+-- Assume you're given the tables containing completed trade orders and user details in a Robinhood trading system.
+
+-- Write a query to retrieve the top three cities that have the highest number of completed trade orders listed in descending order. Output the city name and the corresponding number of completed trade orders.
+-- trades Table:
+-- Column Name	Type
+-- order_id	integer
+-- user_id	integer
+-- quantity	integer
+-- status	string ('Completed', 'Cancelled')
+-- date	timestamp
+-- price	decimal (5, 2)
+-- trades Example Input:
+-- order_id	user_id	quantity	status	date	price
+-- 100101	111	10	Cancelled	08/17/2022 12:00:00	9.80
+-- 100102	111	10	Completed	08/17/2022 12:00:00	10.00
+-- 100259	148	35	Completed	08/25/2022 12:00:00	5.10
+-- 100264	148	40	Completed	08/26/2022 12:00:00	4.80
+-- 100305	300	15	Completed	09/05/2022 12:00:00	10.00
+-- 100400	178	32	Completed	09/17/2022 12:00:00	12.00
+-- 100565	265	2	Completed	09/27/2022 12:00:00	8.70
+-- users Table:
+-- Column Name	Type
+-- user_id	integer
+-- city	string
+-- email	string
+-- signup_date	datetime
+-- users Example Input:
+-- user_id	city	email	signup_date
+-- 111	San Francisco	rrok10@gmail.com	08/03/2021 12:00:00
+-- 148	Boston	sailor9820@gmail.com	08/20/2021 12:00:00
+-- 178	San Francisco	harrypotterfan182@gmail.com	01/05/2022 12:00:00
+-- 265	Denver	shadower_@hotmail.com	02/26/2022 12:00:00
+-- 300	San Francisco	houstoncowboy1122@hotmail.com	06/30/2022 12:00:00
+-- Example Output:
+-- city	total_orders
+-- San Francisco	3
+-- Boston	2
+-- Denver	1
+
+-- In the given dataset, San Francisco has the highest number of completed trade orders with 3 orders. Boston holds the second position with 2 orders, and Denver ranks third with 1 order.
+
+-- Solution:
+
+with cte as (Select user_id, count(order_id) as total_orders from trades
+where status = 'Completed'
+group by user_id)
+
+SELECT u.city, sum(cte.total_orders) as total_orders FROM users u 
+inner join cte
+on u.user_id = cte.user_id
+group by u.city
+order by total_orders Desc limit 3
+
+-- Question 13
+
+-- Given the reviews table, write a query to retrieve the average star rating for each product, grouped by month. The output should display the month as a numerical value, product ID, and average star rating rounded to two decimal places. Sort the output first by month and then by product ID.
+
+-- P.S. If you've read the Ace the Data Science Interview, and liked it, consider writing us a review?
+-- reviews Table:
+-- Column Name	Type
+-- review_id	integer
+-- user_id	integer
+-- submit_date	datetime
+-- product_id	integer
+-- stars	integer (1-5)
+-- reviews Example Input:
+-- review_id	user_id	submit_date	product_id	stars
+-- 6171	123	06/08/2022 00:00:00	50001	4
+-- 7802	265	06/10/2022 00:00:00	69852	4
+-- 5293	362	06/18/2022 00:00:00	50001	3
+-- 6352	192	07/26/2022 00:00:00	69852	3
+-- 4517	981	07/05/2022 00:00:00	69852	2
+-- Example Output:
+-- mth	product	avg_stars
+-- 6	50001	3.50
+-- 6	69852	4.00
+-- 7	69852	2.50
+-- Explanation
+
+-- Product 50001 received two ratings of 4 and 3 in the month of June (6th month), resulting in an average star rating of 3.5.
+
+-- Solution:
+
+SELECT EXTRACT(Month from submit_date) as mth, product_id, round(avg(stars),2) as avg_stars FROM reviews
+group by mth, product_id
+order by mth, product_id;
