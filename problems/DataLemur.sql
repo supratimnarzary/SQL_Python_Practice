@@ -557,3 +557,119 @@ select e.employee_id, e.name from employee e
 inner join manager m
 on e.manager_id = m.employee_id
 where e.salary > m.salary
+
+-- Question 15
+-- Given a table containing information about bank deposits and withdrawals made using Paypal, write a query to retrieve the final account balance for each account, taking into account all the transactions recorded in the table with the assumption that there are no missing transactions.
+-- transactions Table:
+-- Column Name	Type
+-- transaction_id	integer
+-- account_id	integer
+-- amount	decimal
+-- transaction_type	varchar
+-- transactions Example Input:
+-- transaction_id	account_id	amount	transaction_type
+-- 123	101	10.00	Deposit
+-- 124	101	20.00	Deposit
+-- 125	101	5.00	Withdrawal
+-- 126	201	20.00	Deposit
+-- 128	201	10.00	Withdrawal
+-- Example Output:
+-- account_id	final_balance
+-- 101	25.00
+-- 201	10.00
+
+-- Using account ID 101 as an example, $30.00 was deposited into this account, while $5.00 was withdrawn. Therefore, the final account balance can be calculated as the difference between the total deposits and withdrawals which is $30.00 - $5.00, resulting in a final balance of $25.00.
+
+-- Solution:
+
+SELECT account_id,
+sum(Case when transaction_type = 'Withdrawal' then (amount)*(-1) else amount END) as final_balance FROM transactions
+group by account_id
+
+-- Question 16
+
+-- Assume you have an events table on Facebook app analytics. Write a query to calculate the click-through rate (CTR) for the app in 2022 and round the results to 2 decimal places.
+
+-- Definition and note:
+
+--     Percentage of click-through rate (CTR) = 100.0 * Number of clicks / Number of impressions
+--     To avoid integer division, multiply the CTR by 100.0, not 100.
+
+-- events Table:
+-- Column Name	Type
+-- app_id	integer
+-- event_type	string
+-- timestamp	datetime
+-- events Example Input:
+-- app_id	event_type	timestamp
+-- 123	impression	07/18/2022 11:36:12
+-- 123	impression	07/18/2022 11:37:12
+-- 123	click	07/18/2022 11:37:42
+-- 234	impression	07/18/2022 14:15:12
+-- 234	click	07/18/2022 14:16:12
+-- Example Output:
+-- app_id	ctr
+-- 123	50.00
+-- 234	100.00
+-- Explanation
+
+-- Let's consider an example of App 123. This app has a click-through rate (CTR) of 50.00% because out of the 2 impressions it received, it got 1 click.
+
+-- To calculate the CTR, we divide the number of clicks by the number of impressions, and then multiply the result by 100.0 to express it as a percentage. In this case, 1 divided by 2 equals 0.5, and when multiplied by 100.0, it becomes 50.00%. So, the CTR of App 123 is 50.00%.
+
+-- Solution:
+
+SELECT
+app_id,
+round(sum(case when event_type = 'click' then 1 else 0 end)*100.0/
+sum(case when event_type ='impression' then 1 else 0 end),2) as ctr
+FROM events
+where EXTRACT(year from timestamp) =2022
+group by app_id;
+
+-- Question 17
+
+-- Assume you're given tables with information about TikTok user sign-ups and confirmations through email and text. New users on TikTok sign up using their email addresses, and upon sign-up, each user receives a text message confirmation to activate their account.
+
+-- Write a query to display the user IDs of those who did not confirm their sign-up on the first day, but confirmed on the second day.
+
+-- Definition:
+
+--     action_date refers to the date when users activated their accounts and confirmed their sign-up through text messages.
+
+-- emails Table:
+-- Column Name	Type
+-- email_id	integer
+-- user_id	integer
+-- signup_date	datetime
+-- emails Example Input:
+-- email_id	user_id	signup_date
+-- 125	7771	06/14/2022 00:00:00
+-- 433	1052	07/09/2022 00:00:00
+-- texts Table:
+-- Column Name	Type
+-- text_id	integer
+-- email_id	integer
+-- signup_action	string ('Confirmed', 'Not confirmed')
+-- action_date	datetime
+-- texts Example Input:
+-- text_id	email_id	signup_action	action_date
+-- 6878	125	Confirmed	06/14/2022 00:00:00
+-- 6997	433	Not Confirmed	07/09/2022 00:00:00
+-- 7000	433	Confirmed	07/10/2022 00:00:00
+-- Example Output:
+-- user_id
+-- 1052
+-- Explanation:
+
+-- Only User 1052 confirmed their sign-up on the second day.
+
+-- Solution:
+
+select s.user_id from
+(SELECT e.email_id, e.user_id, e.signup_date, t.action_date, t.signup_action
+FROM emails e inner join texts t
+on e.email_id = t.email_id) s
+where s.signup_action = 'Confirmed'
+and EXTRACT(Day from s.signup_date)+1 = EXTRACT(day from s.action_date)
+group by s.user_id;
