@@ -727,4 +727,155 @@ from
 group by unique_queries
 order by unique_queries;
 
+-- Q19
+Your team at JPMorgan Chase is preparing to launch a new credit card, and to gain some insights, you're analyzing how many credit cards were issued each month.
 
+-- Write a query that outputs the name of each credit card and the difference in the number of issued cards between the month with the highest issuance cards and the lowest issuance. Arrange the results based on the largest disparity.
+-- monthly_cards_issued Table:
+-- Column Name	Type
+-- card_name	string
+-- issued_amount	integer
+-- issue_month	integer
+-- issue_year	integer
+-- monthly_cards_issued Example Input:
+-- card_name	issued_amount	issue_month	issue_year
+-- Chase Freedom Flex	55000	1	2021
+-- Chase Freedom Flex	60000	2	2021
+-- Chase Freedom Flex	65000	3	2021
+-- Chase Freedom Flex	70000	4	2021
+-- Chase Sapphire Reserve	170000	1	2021
+-- Chase Sapphire Reserve	175000	2	2021
+-- Chase Sapphire Reserve	180000	3	2021
+-- Example Output:
+-- card_name	difference
+-- Chase Freedom Flex	15000
+-- Chase Sapphire Reserve	10000
+
+-- Chase Freedom Flex's best month was 70k cards issued and the worst month was 55k cards, so the difference is 15k cards.
+
+-- Chase Sapphire Reserve’s best month was 180k cards issued and the worst month was 170k cards, so the difference is 10k cards.
+
+-- Solution:
+SELECT card_name, (max(issued_amount) - min(issued_amount)) as difference
+FROM monthly_cards_issued
+group by card_name
+order by difference desc;
+
+--Q20
+
+-- You're trying to find the mean number of items per order on Alibaba, rounded to 1 decimal place using tables which includes information on the count of items in each order (item_count table) and the corresponding number of orders for each item count (order_occurrences table).
+-- items_per_order Table:
+-- Column Name	Type
+-- item_count	integer
+-- order_occurrences	integer
+-- items_per_order Example Input:
+-- item_count	order_occurrences
+-- 1	500
+-- 2	1000
+-- 3	800
+-- 4	1000
+
+-- There are a total of 500 orders with one item per order, 1000 orders with two items per order, and 800 orders with three items per order."
+-- Example Output:
+-- mean
+-- 2.7
+-- Explanation
+
+-- Let's calculate the arithmetic average:
+
+-- Total items = (1*500) + (2*1000) + (3*800) + (4*1000) = 8900
+
+-- Total orders = 500 + 1000 + 800 + 1000 = 3300
+
+-- Mean = 8900 / 3300 = 2.7
+
+-- Solution:
+with cte as
+  (SELECT item_count, (item_count * order_occurrences) as total_orders, order_occurrences
+   from items_per_order
+   group by item_count, order_occurrences)
+
+SELECT round(cast(sum(total_orders)/sum(order_occurrences) as NUMERIC),1) as mean
+FROM cte;
+
+-- Q21
+-- CVS Health is trying to better understand its pharmacy sales, and how well different products are selling. Each drug can only be produced by one manufacturer.
+
+-- Write a query to find the top 3 most profitable drugs sold, and how much profit they made. Assume that there are no ties in the profits. Display the result from the highest to the lowest total profit.
+
+-- Definition:
+
+--     cogs stands for Cost of Goods Sold which is the direct cost associated with producing the drug.
+--     Total Profit = Total Sales - Cost of Goods Sold
+
+-- If you like this question, try out Pharmacy Analytics (Part 2)!
+-- pharmacy_sales Table:
+-- Column Name	Type
+-- product_id	integer
+-- units_sold	integer
+-- total_sales	decimal
+-- cogs	decimal
+-- manufacturer	varchar
+-- drug	varchar
+-- pharmacy_sales Example Input:
+-- product_id	units_sold	total_sales	cogs	manufacturer	drug
+-- 9	37410	293452.54	208876.01	Eli Lilly	Zyprexa
+-- 34	94698	600997.19	521182.16	AstraZeneca	Surmontil
+-- 61	77023	500101.61	419174.97	Biogen	Varicose Relief
+-- 136	144814	1084258	1006447.73	Biogen	Burkhart
+-- Example Output:
+-- drug	total_profit
+-- Zyprexa	84576.53
+-- Varicose Relief	80926.64
+-- Surmontil	79815.03
+-- Explanation:
+
+-- Zyprexa made the most profit (of $84,576.53) followed by Varicose Relief (of $80,926.64) and Surmontil (of $79,815.3).
+
+-- Solution:
+SELECT drug, sum(total_sales-cogs) as total_profit
+FROM pharmacy_sales
+group by drug
+order by total_profit desc limit 3;
+
+--Q22
+-- CVS Health is analyzing its pharmacy sales data, and how well different products are selling in the market. Each drug is exclusively manufactured by a single manufacturer.
+
+-- Write a query to identify the manufacturers associated with the drugs that resulted in losses for CVS Health and calculate the total amount of losses incurred.
+
+-- Output the manufacturer's name, the number of drugs associated with losses, and the total losses in absolute value. Display the results sorted in descending order with the highest losses displayed at the top.
+
+-- If you like this question, try out Pharmacy Analytics (Part 3)!
+-- pharmacy_sales Table:
+-- Column Name	Type
+-- product_id	integer
+-- units_sold	integer
+-- total_sales	decimal
+-- cogs	decimal
+-- manufacturer	varchar
+-- drug	varchar
+-- pharmacy_sales Example Input:
+-- product_id	units_sold	total_sales	cogs	manufacturer	drug
+-- 156	89514	3130097.00	3427421.73	Biogen	Acyclovir
+-- 25	222331	2753546.00	2974975.36	AbbVie	Lamivudine and Zidovudine
+-- 50	90484	2521023.73	2742445.90	Eli Lilly	Dermasorb TA Complete Kit
+-- 98	110746	813188.82	140422.87	Biogen	Medi-Chord
+-- Example Output:
+-- manufacturer	drug_count	total_loss
+-- Biogen	1	297324.73
+-- AbbVie	1	221429.36
+-- Eli Lilly	1	221422.17
+-- Explanation:
+
+-- The first three rows indicate that some drugs resulted in losses. Among these, Biogen had the highest losses, followed by AbbVie and Eli Lilly. However, the Medi-Chord drug manufactured by Biogen reported a profit and was excluded from the result.
+
+-- Solution:
+select p.manufacturer, sum(p.drug_count), sum(p.total_loss) as total_loss
+  FROM 
+  (SELECT manufacturer, count(drug) as drug_count, sum(total_sales - cogs)*-1 as total_loss
+  from pharmacy_sales
+  GROUP BY manufacturer, drug
+  order by total_loss ASC) p
+where total_loss >0
+group by manufacturer
+order by total_loss DESC;
