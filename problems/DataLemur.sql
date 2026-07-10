@@ -916,3 +916,165 @@ order by total_loss DESC;
 SELECT manufacturer, Concat('$',round(sum(total_sales)/1000000), ' million') as sale FROM pharmacy_sales
 group by manufacturer
 order by sum(total_sales) DESC, manufacturer;
+
+-- Q24
+-- UnitedHealth Group (UHG) has a program called Advocate4Me, which allows policy holders (or, members) to call an advocate and receive support for their health care needs – whether that's claims and benefits support, drug coverage, pre- and post-authorisation, medical records, emergency assistance, or member portal services.
+
+-- Write a query to find how many UHG policy holders made three, or more calls, assuming each call is identified by the case_id column.
+
+-- If you like this question, try out Patient Support Analysis (Part 2)!
+-- callers Table:
+-- Column Name	Type
+-- policy_holder_id	integer
+-- case_id	varchar
+-- call_category	varchar
+-- call_date	timestamp
+-- call_duration_secs	integer
+-- callers Example Input:
+-- policy_holder_id	case_id	call_category	call_date	call_duration_secs
+-- 1	f1d012f9-9d02-4966-a968-bf6c5bc9a9fe	emergency assistance	2023-04-13T19:16:53Z	144
+-- 1	41ce8fb6-1ddd-4f50-ac31-07bfcce6aaab	authorisation	2023-05-25T09:09:30Z	815
+-- 2	9b1af84b-eedb-4c21-9730-6f099cc2cc5e	claims assistance	2023-01-26T01:21:27Z	992
+-- 2	8471a3d4-6fc7-4bb2-9fc7-4583e3638a9e	emergency assistance	2023-03-09T10:58:54Z	128
+-- 2	38208fae-bad0-49bf-99aa-7842ba2e37bc	benefits	2023-06-05T07:35:43Z	619
+-- Example Output:
+-- policy_holder_count
+-- 1
+-- Explanation:
+
+-- The only caller who made three, or more calls is policy holder ID 2.
+
+-- Solution:
+
+with cte as (SELECT policy_holder_id, count(case_id) as count_case FROM callers
+group by policy_holder_id
+HAVING count(case_id) >=3)
+
+select count(policy_holder_id) as policy_holder_count from cte
+
+-- Q25
+-- Assume you are given the table below on Uber transactions made by users. Write a query to obtain the third transaction of every user. Output the user id, spend and transaction date.
+-- transactions Table:
+-- Column Name	Type
+-- user_id	integer
+-- spend	decimal
+-- transaction_date	timestamp
+-- transactions Example Input:
+-- user_id	spend	transaction_date
+-- 111	100.50	01/08/2022 12:00:00
+-- 111	55.00	01/10/2022 12:00:00
+-- 121	36.00	01/18/2022 12:00:00
+-- 145	24.99	01/26/2022 12:00:00
+-- 111	89.60	02/05/2022 12:00:00
+-- Example Output:
+-- user_id	spend	transaction_date
+-- 111	89.60	02/05/2022 12:00:00
+
+-- The dataset you are querying against may have different input & output - this is just an example!
+
+-- Solution:
+
+with cte as (SELECT user_id, spend, transaction_date,
+row_number() over (PARTITION BY user_id order by transaction_date) as rnk
+FROM transactions)
+
+SELECT user_id, spend, transaction_date
+from cte
+where rnk = 3
+
+-- Q26
+
+-- Imagine you're an HR analyst at a tech company tasked with analyzing employee salaries. Your manager is keen on understanding the pay distribution and asks you to determine the second highest salary among all employees.
+
+-- It's possible that multiple employees may share the same second highest salary. In case of duplicate, display the salary only once.
+-- employee Schema:
+-- column_name	type	description
+-- employee_id	integer	The unique ID of the employee.
+-- name	string	The name of the employee.
+-- salary	integer	The salary of the employee.
+-- department_id	integer	The department ID of the employee.
+-- manager_id	integer	The manager ID of the employee.
+-- employee Example Input:
+-- employee_id	name	salary	department_id	manager_id
+-- 1	Emma Thompson	3800	1	6
+-- 2	Daniel Rodriguez	2230	1	7
+-- 3	Olivia Smith	2000	1	8
+-- Example Output:
+-- second_highest_salary
+-- 2230
+
+-- The output represents the second highest salary among all employees. In this case, the second highest salary is $2,230.
+
+-- Solution:
+
+select min(salary) as second_highest_salary from 
+(SELECT salary from employee
+order by salary desc limit 2) salary_table
+
+-- Q27
+
+-- This is the same question as problem #25 in the SQL Chapter of Ace the Data Science Interview!
+
+-- Assume you're given tables with information on Snapchat users, including their ages and time spent sending and opening snaps.
+
+-- Write a query to obtain a breakdown of the time spent sending vs. opening snaps as a percentage of total time spent on these activities grouped by age group. Round the percentage to 2 decimal places in the output.
+
+-- Notes:
+
+--     Calculate the following percentages:
+--         time spent sending / (Time spent sending + Time spent opening)
+--         Time spent opening / (Time spent sending + Time spent opening)
+--     To avoid integer division in percentages, multiply by 100.0 and not 100.
+
+-- Effective April 15th, 2023, the solution has been updated and optimised.
+-- activities Table
+-- Column Name	Type
+-- activity_id	integer
+-- user_id	integer
+-- activity_type	string ('send', 'open', 'chat')
+-- time_spent	float
+-- activity_date	datetime
+-- activities Example Input
+-- activity_id	user_id	activity_type	time_spent	activity_date
+-- 7274	123	open	4.50	06/22/2022 12:00:00
+-- 2425	123	send	3.50	06/22/2022 12:00:00
+-- 1413	456	send	5.67	06/23/2022 12:00:00
+-- 1414	789	chat	11.00	06/25/2022 12:00:00
+-- 2536	456	open	3.00	06/25/2022 12:00:00
+-- age_breakdown Table
+-- Column Name	Type
+-- user_id	integer
+-- age_bucket	string ('21-25', '26-30', '31-25')
+-- age_breakdown Example Input
+-- user_id	age_bucket
+-- 123	31-35
+-- 456	26-30
+-- 789	21-25
+-- Example Output
+-- age_bucket	send_perc	open_perc
+-- 26-30	65.40	34.60
+-- 31-35	43.75	56.25
+-- Explanation
+
+-- Using the age bucket 26-30 as example, the time spent sending snaps was 5.67 and the time spent opening snaps was 3.
+
+-- To calculate the percentage of time spent sending snaps, we divide the time spent sending snaps by the total time spent on sending and opening snaps, which is 5.67 + 3 = 8.67.
+
+-- So, the percentage of time spent sending snaps is 5.67 / (5.67 + 3) = 65.4%, and the percentage of time spent opening snaps is 3 / (5.67 + 3) = 34.6%.
+
+-- Solution:
+
+with cte as (SELECT
+  user_id,
+  round(sum(case when activity_type = 'send' then time_spent ELSE 0 END)*100.0/
+  sum(case when activity_type != 'chat' then time_spent else 0 end),2) as send_perc,
+  round(sum(case when activity_type = 'open' then time_spent ELSE 0 END)*100.0/
+  sum(case when activity_type <> 'chat' then time_spent else 0 end),2) as open_perc
+from activities
+group by user_id)
+
+SELECT a.age_bucket, c.send_perc, c.open_perc
+from age_breakdown a
+inner join cte c
+on a.user_id = c.user_id
+order by a.age_bucket
