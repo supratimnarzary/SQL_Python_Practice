@@ -1078,3 +1078,155 @@ from age_breakdown a
 inner join cte c
 on a.user_id = c.user_id
 order by a.age_bucket
+
+-- Q28
+
+-- Assume there are three Spotify tables: artists, songs, and global_song_rank, which contain information about the artists, songs, and music charts, respectively.
+
+-- Write a query to find the top 5 artists whose songs appear most frequently in the Top 10 of the global_song_rank table. Display the top 5 artist names in ascending order, along with their song appearance ranking.
+
+-- If two or more artists have the same number of song appearances, they should be assigned the same ranking, and the rank numbers should be continuous (i.e. 1, 2, 2, 3, 4, 5). If you've never seen a rank order like this before, do the rank window function tutorial.
+-- artists Table:
+-- Column Name	Type
+-- artist_id	integer
+-- artist_name	varchar
+-- label_owner	varchar
+-- artists Example Input:
+-- artist_id	artist_name	label_owner
+-- 101	Ed Sheeran	Warner Music Group
+-- 120	Drake	Warner Music Group
+-- 125	Bad Bunny	Rimas Entertainment
+-- songs Table:
+-- Column Name	Type
+-- song_id	integer
+-- artist_id	integer
+-- name	varchar
+-- songs Example Input:
+-- song_id	artist_id	name
+-- 55511	101	Perfect
+-- 45202	101	Shape of You
+-- 22222	120	One Dance
+-- 19960	120	Hotline Bling
+-- global_song_rank Table:
+-- Column Name	Type
+-- day	integer (1-52)
+-- song_id	integer
+-- rank	integer (1-1,000,000)
+-- global_song_rank Example Input:
+-- day	song_id	rank
+-- 1	45202	5
+-- 3	45202	2
+-- 1	19960	3
+-- 9	19960	15
+-- Example Output:
+-- artist_name	artist_rank
+-- Ed Sheeran	1
+-- Drake	2
+-- Explanation:
+
+-- Ed Sheeran's song appeared twice in the Top 10 list of global song rank while Drake's song is only listed once. Therefore, Ed is ranked #1 and Drake is ranked #2.
+
+-- Solution:
+
+with cte as
+
+(select a.artist_name, count(a.artist_name) as frequency from artists a
+inner JOIN songs s
+on a. artist_id = s.artist_id
+INNER JOIN global_song_rank g
+on s.song_id = g.song_id
+where g.rank <=10
+group by a.artist_name
+order by frequency DESC)
+
+SELECT f.artist_name, f.artist_rank from 
+(SELECT artist_name,
+dense_rank() over (order by frequency DESC) as artist_rank
+FROM cte) f
+where f.artist_rank <6
+
+-- Q29:
+-- Assume you're given a table on Walmart user transactions. Based on their most recent transaction date, write a query that retrieve the users along with the number of products they bought.
+
+-- Output the user's most recent transaction date, user ID, and the number of products, sorted in chronological order by the transaction date.
+-- user_transactions Table:
+-- Column Name	Type
+-- product_id	integer
+-- user_id	integer
+-- spend	decimal
+-- transaction_date	timestamp
+-- user_transactions Example Input:
+-- product_id	user_id	spend	transaction_date
+-- 3673	123	68.90	07/08/2022 12:00:00
+-- 9623	123	274.10	07/08/2022 12:00:00
+-- 1467	115	19.90	07/08/2022 12:00:00
+-- 2513	159	25.00	07/08/2022 12:00:00
+-- 1452	159	74.50	07/10/2022 12:00:00
+-- Example Output:
+-- transaction_date	user_id	purchase_count
+-- 07/08/2022 12:00:00	115	1
+-- 07/08/2022 12:00:000	123	2
+-- 07/10/2022 12:00:00	159	1
+
+-- Solution:
+with cte as
+(SELECT transaction_date, user_id, count(product_id) as purchase_count,
+dense_rank() over(partition by user_id order by transaction_date desc) as rnk
+FROM user_transactions
+group by transaction_date, user_id)
+
+select transaction_date, user_id, purchase_count
+from cte
+where rnk =1
+order by transaction_date;
+
+-- Q30
+
+-- This is the same question as problem #28 in the SQL Chapter of Ace the Data Science Interview!
+
+-- Assume you're given a table with measurement values obtained from a Google sensor over multiple days with measurements taken multiple times within each day.
+
+-- Write a query to calculate the sum of odd-numbered and even-numbered measurements separately for a particular day and display the results in two different columns. Refer to the Example Output below for the desired format.
+
+-- Definition:
+
+--     Within a day, measurements taken at 1st, 3rd, and 5th times are considered odd-numbered measurements, and measurements taken at 2nd, 4th, and 6th times are considered even-numbered measurements.
+
+-- Effective April 15th, 2023, the question and solution for this question have been revised.
+-- measurements Table:
+-- Column Name	Type
+-- measurement_id	integer
+-- measurement_value	decimal
+-- measurement_time	datetime
+-- measurements Example Input:
+-- measurement_id	measurement_value	measurement_time
+-- 131233	1109.51	07/10/2022 09:00:00
+-- 135211	1662.74	07/10/2022 11:00:00
+-- 523542	1246.24	07/10/2022 13:15:00
+-- 143562	1124.50	07/11/2022 15:00:00
+-- 346462	1234.14	07/11/2022 16:45:00
+-- Example Output:
+-- measurement_day	odd_sum	even_sum
+-- 07/10/2022 00:00:00	2355.75	1662.74
+-- 07/11/2022 00:00:00	1124.50	1234.14
+-- Explanation
+
+-- Based on the results,
+
+--     On 07/10/2022, the sum of the odd-numbered measurements is 2355.75, while the sum of the even-numbered measurements is 1662.74.
+--     On 07/11/2022, there are only two measurements available. The sum of the odd-numbered measurements is 1124.50, and the sum of the even-numbered measurements is 1234.14.
+
+-- Solution:
+with rank_table as
+(SELECT CAST(measurement_time as date) as measurement_day, measurement_value,
+row_number() over(PARTITION by extract(day from measurement_time) order by measurement_time asc) as rnk
+FROM measurements)
+
+select
+measurement_day,
+sum(case when rnk%2 != 0 then measurement_value else 0 end) as odd_sum,
+sum(case when rnk%2 = 0 then measurement_value else 0 end) as even_sum
+from rank_table
+group by measurement_day
+order by measurement_day;
+
