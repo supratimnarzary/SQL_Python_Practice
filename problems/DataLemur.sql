@@ -1346,3 +1346,120 @@ select
 from inventory
 where item_type = 'not_prime'
 group by item_type
+
+-- Q 33:
+-- As part of an ongoing analysis of salary distribution within the company, your manager has requested a report identifying high earners in each department. A 'high earner' within a department is defined as an employee with a salary ranking among the top three salaries within that department.
+
+-- You're tasked with identifying these high earners across all departments. Write a query to display the employee's name along with their department name and salary. In case of duplicates, sort the results of department name in ascending order, then by salary in descending order. If multiple employees have the same salary, then order them alphabetically.
+
+-- Note: Ensure to utilize the appropriate ranking window function to handle duplicate salaries effectively.
+
+-- As of June 18th, we have removed the requirement for unique salaries and revised the sorting order for the results.
+-- employee Schema:
+-- column_name	type	description
+-- employee_id	integer	The unique ID of the employee.
+-- name	string	The name of the employee.
+-- salary	integer	The salary of the employee.
+-- department_id	integer	The department ID of the employee.
+-- manager_id	integer	The manager ID of the employee.
+-- employee Example Input:
+-- employee_id	name	salary	department_id	manager_id
+-- 1	Emma Thompson	3800	1	6
+-- 2	Daniel Rodriguez	2230	1	7
+-- 3	Olivia Smith	2000	1	8
+-- 4	Noah Johnson	6800	2	9
+-- 5	Sophia Martinez	1750	1	11
+-- 6	Liam Brown	13000	3	
+-- 7	Ava Garcia	12500	3	
+-- 8	William Davis	6800	2	
+-- 9	Isabella Wilson	11000	3	
+-- 10	James Anderson	4000	1	11
+-- department Schema:
+-- column_name	type	description
+-- department_id	integer	The department ID of the employee.
+-- department_name	string	The name of the department.
+-- department Example Input:
+-- department_id	department_name
+-- 1	Data Analytics
+-- 2	Data Science
+-- Example Output:
+-- department_name	name	salary
+-- Data Analytics	James Anderson	4000
+-- Data Analytics	Emma Thompson	3800
+-- Data Analytics	Daniel Rodriguez	2230
+-- Data Science	Noah Johnson	6800
+-- Data Science	William Davis	6800
+
+-- The output displays the high earners in each department.
+
+--     In the Data Analytics deaprtment, James Anderson leads with a salary of $4,000, followed by Emma Thompson earning $3,800, and Daniel Rodriguez with $2,230.
+--     In the Data Science department, both Noah Johnson and William Davis earn $6,800, with Noah listed before William due to alphabetical ordering.
+
+
+-- Solution:
+
+With cte AS
+(SELECT e.name,e.salary, e.department_id, d.department_name,
+dense_rank() OVER (PARTITION BY d.department_id ORDER BY e.salary DESC) as rnk
+FROM employee e JOIN department d
+ON e.department_id = d.department_id)
+
+
+SELECT department_name, name, salary from cte
+WHERE rnk <=3
+ORDER BY department_name ASC, salary DESC, name ASC;
+
+-- Q 34:
+-- New TikTok users sign up with their emails. They confirmed their signup by replying to the text confirmation to activate their accounts. Users may receive multiple text messages for account confirmation until they have confirmed their new account.
+
+-- A senior analyst is interested to know the activation rate of specified users in the emails table. Write a query to find the activation rate. Round the percentage to 2 decimal places.
+
+-- Definitions:
+
+--     emails table contain the information of user signup details.
+--     texts table contains the users' activation information.
+
+-- Assumptions:
+
+--     The analyst is interested in the activation rate of specific users in the emails table, which may not include all users that could potentially be found in the texts table.
+--     For example, user 123 in the emails table may not be in the texts table and vice versa.
+
+-- Effective April 4th 2023, we added an assumption to the question to provide additional clarity.
+-- emails Table:
+-- Column Name	Type
+-- email_id	integer
+-- user_id	integer
+-- signup_date	datetime
+-- emails Example Input:
+-- email_id	user_id	signup_date
+-- 125	7771	06/14/2022 00:00:00
+-- 236	6950	07/01/2022 00:00:00
+-- 433	1052	07/09/2022 00:00:00
+-- texts Table:
+-- Column Name	Type
+-- text_id	integer
+-- email_id	integer
+-- signup_action	varchar
+-- texts Example Input:
+-- text_id	email_id	signup_action
+-- 6878	125	Confirmed
+-- 6920	236	Not Confirmed
+-- 6994	236	Confirmed
+
+-- 'Confirmed' in signup_action means the user has activated their account and successfully completed the signup process.
+-- Example Output:
+-- confirm_rate
+-- 0.67
+-- Explanation:
+
+-- 67% of users have successfully completed their signup and activated their accounts. The remaining 33% have not yet replied to the text to confirm their signup.
+
+Solution:
+
+-- SELECT
+-- ROUND(COUNT(t.email_id)::DECIMAL
+--   /COUNT(DISTINCT e.email_id),2) as activation_rate
+-- FROM emails e
+-- LEFT JOIN texts t
+-- ON e.email_id = t.email_id
+-- AND t.signup_action = 'Confirmed';
