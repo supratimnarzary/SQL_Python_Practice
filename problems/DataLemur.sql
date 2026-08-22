@@ -1736,3 +1736,117 @@ WITH cte AS
 
 SELECT category_name, product_name FROM cte
 WHERE rnk = 1;
+
+-- Q39:
+-- In an effort to identify high-value customers, Amazon asked for your help to obtain data about users who go on shopping sprees. A shopping spree occurs when a user makes purchases on 3 or more consecutive days.
+
+-- List the user IDs who have gone on at least 1 shopping spree in ascending order.
+-- transactions Table:
+-- Column Name	Type
+-- user_id	integer
+-- amount	float
+-- transaction_date	timestamp
+-- transactions Example Input:
+-- user_id	amount	transaction_date
+-- 1	9.99	08/01/2022 10:00:00
+-- 1	55	08/17/2022 10:00:00
+-- 2	149.5	08/05/2022 10:00:00
+-- 2	4.89	08/06/2022 10:00:00
+-- 2	34	08/07/2022 10:00:00
+-- Example Output:
+-- user_id
+-- 2
+-- Explanation
+
+-- In this example, user_id 2 is the only one who has gone on a shopping spree.
+
+-- Solution:
+
+SELECT DISTINCT t1.user_id
+
+  FROM transactions t1
+  INNER JOIN transactions t2
+  ON DATE(t2.transaction_date) = DATE(t1.transaction_date)+1
+  INNER JOIN transactions t3
+  ON DATE(t3.transaction_date) = DATE(t1.transaction_date)+2
+
+ORDER BY t1.user_id
+
+--Q40
+-- You're given a table containing the item count for each order on Alibaba, along with the frequency of orders that have the same item count. Write a query to retrieve the mode of the order occurrences. Additionally, if there are multiple item counts with the same mode, the results should be sorted in ascending order.
+
+-- Clarifications:
+
+--     item_count: Represents the number of items sold in each order.
+--     order_occurrences: Represents the frequency of orders with the corresponding number of items sold per order.
+--     For example, if there are 800 orders with 3 items sold in each order, the record would have an item_count of 3 and an order_occurrences of 800.
+
+-- Effective June 14th, 2023, the problem statement has been revised and additional clarification have been added for clarity.
+-- items_per_order Table:
+-- Column Name	Type
+-- item_count	integer
+-- order_occurrences	integer
+-- items_per_order Example Input:
+-- item_count	order_occurrences
+-- 1	500
+-- 2	1000
+-- 3	800
+-- Example Output:
+-- mode
+-- 2
+-- Explanation:
+
+-- Based on the example output, the order_occurrences value of 1000 corresponds to the highest frequency among all item counts. This means that item count of 2 has occurred 1000 times, making it the mode of order occurrences.
+
+--Solution:
+
+SELECT item_count as mode FROM
+items_per_order
+WHERE order_occurrences = (SELECT Max(order_occurrences) FROM items_per_order)
+
+-- Q41:
+-- Your team at JPMorgan Chase is soon launching a new credit card. You are asked to estimate how many cards you'll issue in the first month.
+
+-- Before you can answer this question, you want to first get some perspective on how well new credit card launches typically do in their first month.
+
+-- Write a query that outputs the name of the credit card, and how many cards were issued in its launch month. The launch month is the earliest record in the monthly_cards_issued table for a given card. Order the results starting from the biggest issued amount.
+-- monthly_cards_issued Table:
+-- Column Name	Type
+-- issue_month	integer
+-- issue_year	integer
+-- card_name	string
+-- issued_amount	integer
+-- monthly_cards_issued Example Input:
+-- issue_month	issue_year	card_name	issued_amount
+-- 1	2021	Chase Sapphire Reserve	170000
+-- 2	2021	Chase Sapphire Reserve	175000
+-- 3	2021	Chase Sapphire Reserve	180000
+-- 3	2021	Chase Freedom Flex	65000
+-- 4	2021	Chase Freedom Flex	70000
+-- Example Output:
+-- card_name	issued_amount
+-- Chase Sapphire Reserve	170000
+-- Chase Freedom Flex	65000
+-- Explanation
+
+-- Chase Sapphire Reserve card was launched on 1/2021 with an issued amount of 170,000 cards and the Chase Freedom Flex card was launched on 3/2021 with an issued amount of 65,000 cards.
+
+-- Solution:
+
+WITH cte AS
+
+(SELECT
+a.card_name, a.issued_amount, issue_year, issue_month,
+row_number() OVER(PARTITION BY a.card_name) as rnk
+
+FROM
+
+  (SELECT MIN(issue_year) as issue_year, card_name, issued_amount, issue_month
+  FROM monthly_cards_issued
+  GROUP BY card_name, issued_amount, issue_month
+  ORDER BY card_name,issue_year, issue_month) a)
+  
+SELECT card_name, issued_amount
+FROM cte
+WHERE rnk = 1
+ORDER BY issued_amount DESC;
