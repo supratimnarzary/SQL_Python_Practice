@@ -1935,3 +1935,82 @@ SELECT ROUND(
 FROM phone_calls pc
 JOIN phone_info ci ON pc.caller_id   = ci.caller_id
 JOIN phone_info ri ON pc.receiver_id = ri.caller_id;
+
+-- Q43:UnitedHealth Group (UHG) has a program called Advocate4Me, which allows policy holders (or, members) to call an advocate and receive support for their health care needs – whether that's claims and benefits support, drug coverage, pre- and post-authorisation, medical records, emergency assistance, or member portal services.
+
+-- Calls to the Advocate4Me call centre are classified into various categories, but some calls cannot be neatly categorised. These uncategorised calls are labeled as “n/a”, or are left empty when the support agent does not enter anything into the call category field.
+
+-- Write a query to calculate the percentage of calls that cannot be categorised. Round your answer to 1 decimal place. For example, 45.0, 48.5, 57.7.
+-- callers Table:
+-- Column Name	Type
+-- policy_holder_id	integer
+-- case_id	varchar
+-- call_category	varchar
+-- call_date	timestamp
+-- call_duration_secs	integer
+-- callers Example Input:
+-- policy_holder_id	case_id	call_category	call_date	call_duration_secs
+-- 1	f1d012f9-9d02-4966-a968-bf6c5bc9a9fe	emergency assistance	2023-04-13T19:16:53Z	144
+-- 1	41ce8fb6-1ddd-4f50-ac31-07bfcce6aaab	authorisation	2023-05-25T09:09:30Z	815
+-- 2	9b1af84b-eedb-4c21-9730-6f099cc2cc5e	n/a	2023-01-26T01:21:27Z	992
+-- 2	8471a3d4-6fc7-4bb2-9fc7-4583e3638a9e	emergency assistance	2023-03-09T10:58:54Z	128
+-- 2	38208fae-bad0-49bf-99aa-7842ba2e37bc	benefits	2023-06-05T07:35:43Z	619
+-- Example Output:
+-- uncategorised_call_pct
+-- 20.0
+
+-- Solution:
+SELECT
+  ROUND(SUM(CASE WHEN call_category = 'n/a' OR call_category ISNULL THEN 1 ELSE 0 END)*100.0/
+  (SELECT COUNT (*) FROM callers),1) as uncategorised_call_pct
+FROM callers;
+
+-- Q44: This is the same question as problem #23 in the SQL Chapter of Ace the Data Science Interview!
+
+-- Assume you're given a table containing information on Facebook user actions. Write a query to obtain number of monthly active users (MAUs) in July 2022, including the month in numerical format "1, 2, 3".
+
+-- Hint:
+
+--     An active user is defined as a user who has performed actions such as 'sign-in', 'like', or 'comment' in both the current month and the previous month.
+
+-- user_actions Table:
+-- Column Name	Type
+-- user_id	integer
+-- event_id	integer
+-- event_type	string ("sign-in, "like", "comment")
+-- event_date	datetime
+-- user_actionsExample Input:
+-- user_id	event_id	event_type	event_date
+-- 445	7765	sign-in	05/31/2022 12:00:00
+-- 742	6458	sign-in	06/03/2022 12:00:00
+-- 445	3634	like	06/05/2022 12:00:00
+-- 742	1374	comment	06/05/2022 12:00:00
+-- 648	3124	like	06/18/2022 12:00:00
+-- Example Output for June 2022:
+-- month	monthly_active_users
+-- 6	1
+-- Example
+
+-- In June 2022, there was only one monthly active user (MAU) with the user_id 445.
+
+-- Please note that the output provided is for June 2022 as the user_actions table only contains event dates for that month. You should adapt the solution accordingly for July 2022.
+
+-- Solution:
+
+WITH cte AS
+
+(SELECT
+  user_id, event_type, EXTRACT(MONTH from event_date) as month
+FROM user_actions
+WHERE EXTRACT(MONTH from event_date) >5
+AND EXTRACT(MONTH from event_date) <=7
+AND EXTRACT(YEAR from event_date) = 2022
+AND event_type IN ('sign-in', 'like','comment'))
+
+
+SELECT c.month, count(DISTINCT c.user_id) as monthly_active_users FROM cte c
+INNER JOIN (SELECT DISTINCT user_id, month from cte
+            WHERE month = 6) j
+ON c.user_id = j.user_id
+WHERE c.month = 7
+GROUP BY c.month
